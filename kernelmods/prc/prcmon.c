@@ -1,8 +1,4 @@
 
-/* proc_example.c
- * Author: Kiran Kankipati
- * Updated: 22-feb-2017
- */
 #include <linux/kernel.h>
 #include <linux/types.h>
 #include <linux/module.h> 
@@ -43,6 +39,7 @@
 #include <net/protocol.h>
 #include <net/flow.h>
 #include <asm/types.h>
+MODULE_LICENSE("GPLv2");
 
 struct proc_dir_entry *tlc_proc_a;
 
@@ -50,6 +47,14 @@ int abc=100;
 
 #define PROCFS_MAX_SIZE 30
 char proc_buf[PROCFS_MAX_SIZE];
+
+
+/*
+* Helper Functions
+*/
+void update_process_data();
+void get_process_data();
+
 
 static ssize_t tlc_proc_a_write(struct file *fp, const char *buf, size_t len, loff_t * off)
 {	if(len > PROCFS_MAX_SIZE) { return -EFAULT; }
@@ -93,11 +98,23 @@ static long prcmon_ioctl (struct file *filp, unsigned int cmd, unsigned long arg
 	
 	switch(cmd) {
 	
-	case PRCMON_GET_PROC:
-
 	case PRCMON_REFRESH_TL:
+		//Fill Local Data Structure with process info. for speedier access
+		//This must be called only once during power cycle, as it is expensive
+		//Local data structure must be updated only in case of certain events from upper layer during power cycle.
+	
+	case PRCMON_GET_PROC:
+		//acquire a process name to match
+		if (copy_from_user(&process_data ,(struct process_data ) arg , sizeof(struct process_data))
+			return -EINVAL;
+		else
+			printf(KERN_INFO,"Process Information -- Name = [%s]\n",process_data.process_name);
+	
+		//Search for process name in our local data structure
+		get_process_data(process_data.process_name);
 
 	case default:
+		return -EINVAL;
 
 	return 0;
 }
